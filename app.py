@@ -5,6 +5,12 @@ import os
 import uuid
 import whisper
 import openai
+from dotenv import load_dotenv
+from pathlib import Path
+
+
+load_dotenv(dotenv_path=Path("secret.env").resolve())
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 app = Flask(__name__)
 CORS(app, resources={r"/analyze": {"origins": "*"}}, methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
@@ -30,6 +36,7 @@ def analyze():
 
     try:
         print("⬇️ מוריד אודיו מהסרטון עם yt-dlp...")
+        print("✅ yt-dlp path:", subprocess.run(["which", "yt-dlp"], capture_output=True, text=True).stdout.strip())
         # שלב 1: הורד אודיו מהסרטון
         command = [
             "yt-dlp",
@@ -45,8 +52,6 @@ def analyze():
         # שלב 2: תמלול עם whisper
         result = model.transcribe(filename, language="he")
         text = result["text"]
-        import openai
-        openai.api_key = "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"  # בלי os.getenv
 
         def check_text_with_gpt(text):
             response = openai.ChatCompletion.create(
