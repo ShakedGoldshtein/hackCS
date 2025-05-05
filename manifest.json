@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "TikTok Fake Checker",
+  "version": "1.0",
+  "description": "Analyze TikTok videos for misleading or fake content.",
+  "permissions": ["activeTab","tabs", "scripting"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Analyze TikTok"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
