@@ -63,7 +63,7 @@ def analyze():
                 response = openai.ChatCompletion.create(
                     model="gpt-4-turbo",
                     messages=[
-                        {"role": "system", "content": "אתה מנקה טקסטים קלוקלים ומפשט ניסוחים כדי שיהיה ניתן להבין ולנתח אותם. הפלט שלך צריך להיות טקסט ברור, תמציתי וללא שגיאות לשוניות או תחביריות."},
+                        {"role": "system", "content": "אתה מנקה טקסטים קלוקלים, מפשט ניסוחים ושגיאות כתיב כדי שיהיה ניתן להבין ולנתח אותם. הפלט שלך צריך להיות טקסט ברור, תמציתי וללא שגיאות לשוניות או תחביריות."},
                         {"role": "user", "content": f"פשט את הטקסט הבא כך שיהיה ברור וקריא יותר:\n{text}"}
                     ],
                     temperature=0.3
@@ -84,7 +84,8 @@ def analyze():
                 temperature=0.3
             )
             claims = [line.strip() for line in split_response.choices[0].message.content.strip().split('\n') if line.strip()]
-
+            # הסרת מספור (כמו "1. " או "1) " בתחילת כל טענה)
+            claims = [re.sub(r"^\d+[\.\)]\s*", "", claim) for claim in claims]
             answers = []
             for claim in claims:
                 try:

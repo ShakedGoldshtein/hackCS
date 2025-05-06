@@ -38,11 +38,11 @@ document.getElementById("analyze-btn").addEventListener("click", async () => {
             return;
         }
         document.getElementById("result").innerText =
-            "📝 טענות שזוהו בטקסט:\n\n" +
+            "טענות שזוהו בטקסט:\n\n" +
             result.gpt_analysis.map((entry, i) =>
                 `טענה מספר ${i + 1}:\n"${entry.claim}"\n\n` +
-                `🧠 ${entry.verdict === "true" ? "✔️ אמין" : (entry.verdict === "false" ? "⚠️ לא אמין" : "❓ לא ידוע")}\n` +
-                `${entry.gpt_answer ? "💬 נימוק: " + entry.gpt_answer : "ℹ️ לא סופק נימוק"}\n`
+                `${entry.verdict === "true" ? "אמין" : (entry.verdict === "false" ? "לא אמין" : "❓ לא ידוע")}\n` +
+                `${entry.gpt_answer ? "נימוק: " + entry.gpt_answer : "ℹ️ לא סופק נימוק"}\n`
             ).join("\n\n");
 
     } catch (error) {
