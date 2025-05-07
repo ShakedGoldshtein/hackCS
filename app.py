@@ -1,3 +1,10 @@
+import ssl
+import certifi
+
+def custom_ssl_context(*args, **kwargs):
+    return ssl.create_default_context(cafile=certifi.where())
+
+ssl._create_default_https_context = custom_ssl_context
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import subprocess
@@ -7,12 +14,6 @@ import whisper
 import openai
 from dotenv import load_dotenv
 from pathlib import Path
-import re
-import nltk
-nltk.download('punkt', quiet=True)
-from nltk.tokenize import sent_tokenize
-import wikipedia
-wikipedia.set_lang("he")  # כדי לחפש בעברית
 
 
 load_dotenv(dotenv_path=Path("secret.env").resolve())
@@ -20,7 +21,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 app = Flask(__name__)
 CORS(app, resources={r"/analyze": {"origins": "*"}}, methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
-model = whisper.load_model("large")  # אפשר גם tiny או base אם אתה רוצה שזה יהיה מהיר
+model = whisper.load_model("small")  # אפשר גם tiny או base אם אתה רוצה שזה יהיה מהיר
 
 @app.route("/analyze", methods=["OPTIONS"])
 def analyze_options():
@@ -59,86 +60,24 @@ def analyze():
         result = model.transcribe(filename, language="he")
         text = result["text"]
 
-        #פונקציה לבדיקת טענה בוויקיפדיה
-        def check_claim_in_wikipedia(claim):
-            try:
-                summary = wikipedia.summary(claim, sentences=2)
-                return summary
-            except wikipedia.exceptions.DisambiguationError as e:
-                return f"שגיאה: הדף לא חד משמעי. נסה לדייק את הטענה. ({e.options[:3]})"
-            except wikipedia.exceptions.PageError:
-                return "שגיאה: לא נמצא דף רלוונטי בויקיפדיה."
-            except Exception as e:
-                return f"שגיאה כללית: {str(e)}"
-
-        # שלב ביניים: ניקוי ופישוט טקסט
-        def gpt_clean_text(text):
-            try:
-                response = openai.ChatCompletion.create(
-                    model="gpt-4-turbo",
-                    messages=[
-                        {"role": "system", "content": "אתה מנקה טקסטים קלוקלים, מפשט ניסוחים ושגיאות כתיב כדי שיהיה ניתן להבין ולנתח אותם. הפלט שלך צריך להיות טקסט ברור, תמציתי וללא שגיאות לשוניות או תחביריות."},
-                        {"role": "user", "content": f"פשט את הטקסט הבא כך שיהיה ברור וקריא יותר:\n{text}"}
-                    ],
-                    temperature=0.3
-                )
-                return response.choices[0].message.content.strip()
-            except Exception as e:
-                print("❌ שגיאה בפישוט הטקסט:", e)
-                return text  # אם נכשל, נמשיך עם הטקסט המקורי
-
         def check_text_with_gpt(text):
-            text = gpt_clean_text(text)
-            split_response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",  # או gpt-4 אם יש לך גישה
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",  # או "gpt-4" אם יש לך
                 messages=[
-                    {"role": "system", "content": "אתה עוזר NLP. חלק טקסט לטענות נפרדות. כל טענה בשורה חדשה בלבד."},
-                    {"role": "user", "content": f"חלק את הטקסט הבא לטענות נפרדות. כל טענה צריכה להיות קצרה וממוקדת:\n{text}"}
+                    {"role": "system", "content": "אתה מומחה אמינות שתפקידו לזהות מידע שגוי או מסוכן בטקסטים."},
+                    {"role": "user", "content": f"""הטקסט הבא הוא תמלול של וידאו מטיקטוק. תבחן אותו ותחזיר:
+        1. האם הוא מכיל מידע שגוי? (כן/לא)
+        2. מה רמת האמינות של הטקסט באחוזים?
+        3. אילו טענות שגויות קיימות בו?
+        4. מה ההסבר הנכון?
+
+        טקסט:
+        \"\"\"{text}\"\"\"
+        """}
                 ],
-                temperature=0.3
+                temperature=0.2
             )
-            claims = [line.strip() for line in split_response.choices[0].message.content.strip().split('\n') if line.strip()]
-            # הסרת מספור (כמו "1. " או "1) " בתחילת כל טענה)
-            claims = [re.sub(r"^\d+[\.\)]\s*", "", claim) for claim in claims]
-            answers = []
-            for claim in claims:
-                try:
-                    response = openai.ChatCompletion.create(
-                        model="gpt-3.5-turbo",  # או gpt-4 אם יש לך גישה
-                        messages=[
-                            {"role": "system", "content": "אתה בודק עובדות מדויק. קבל טענה וענה האם היא נכונה או שגויה, ולמה."},
-                            {"role": "user", "content": f"האם המשפט הבא נכון או שגוי? ענה רק 'נכון' או 'שגוי' ולאחר מכן הסבר מדוע:\n\"{claim}\""}
-                        ],
-                        temperature=0.2
-                    )
-                    answer_text = response.choices[0].message.content.strip()
-                    verdict = "unknown"
-                    if any(keyword in answer_text.lower() for keyword in ["נכון", "מדויק", "אמיתי", "תקף"]):
-                        verdict = "true"
-                    elif any(keyword in answer_text.lower() for keyword in ["שגוי", "לא נכון", "לא מדויק", "לא תקף"]):
-                        verdict = "false"
-
-                    # בדיקה מול ויקיפדיה אם לא אמין
-                    if verdict == "false":
-                        print(f"🔎 בודק את הטענה בויקיפדיה: {claim}")
-                        wiki_info = check_claim_in_wikipedia(claim)
-                    else:
-                        wiki_info = None
-                    answers.append({
-                        "claim": claim,
-                        "verdict": verdict,
-                        "gpt_answer": answer_text,
-                        "wikipedia_info": wiki_info
-                    })
-                except Exception as e:
-                    answers.append({
-                        "claim": claim,
-                        "verdict": "unknown",
-                        "gpt_answer": f"שגיאה בבדיקה: {str(e)}"
-                    })
-
-            return answers
-
+            return response.choices[0].message.content.strip()
         print("📝 תמלול שהתקבל:", text)
 
         # בדיקת GPT אחרי התמלול
@@ -148,7 +87,7 @@ def analyze():
         return jsonify({
             "verdict": "תמלול הושלם",
             "reason": text,
-            "gpt_analysis": gpt_analysis  # עכשיו זו רשימת טענות עם ניתוחים
+            "gpt_analysis": gpt_analysis
         })
 
     except Exception as e:
