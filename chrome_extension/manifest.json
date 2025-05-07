@@ -1,14 +1,33 @@
 {
   "manifest_version": 3,
-  "name": "TikTok Fake Checker",
-  "version": "1.0",
-  "description": "Analyze TikTok videos for misleading or fake content.",
-  "permissions": ["activeTab","tabs", "scripting"],
+  "name": "Fake News Detection Helper",
+  "description": "Highlights problematic claims inside YouTube videos with a waveform",
+  "version": "1.1",
+  "permissions": [
+    "storage",
+    "scripting",
+    "activeTab"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["sounds/ding.mp3"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Analyze TikTok"
+    "default_icon": {
+      "16": "icons/icon.png",
+      "48": "icons/icon.png",
+      "128": "icons/icon.png"
+    }
   },
-  "background": {
-    "service_worker": "background.js"
-  }
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*",
+      "https://www.tiktok.com/*"
+    ],
+      "js": ["content.js"]
+    }
+  ]
 }
