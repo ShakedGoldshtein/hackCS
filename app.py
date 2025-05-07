@@ -1,3 +1,10 @@
+import ssl
+import certifi
+
+def custom_ssl_context(*args, **kwargs):
+    return ssl.create_default_context(cafile=certifi.where())
+
+ssl._create_default_https_context = custom_ssl_context
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import subprocess

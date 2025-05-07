@@ -17,7 +17,7 @@ document.getElementById("analyze-btn").addEventListener("click", async () => {
     document.getElementById("result").innerText = "⏳ מנתח את הסרטון...";
 
     try {
-        const response = await fetch("https://2d0f-132-69-234-140.ngrok-free.app/analyze", {
+        const response = await fetch("https://b539-5-29-19-78.ngrok-free.app/analyze", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ url: videoUrl })
