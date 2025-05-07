@@ -16,30 +16,24 @@ const fakeClaims = [
   { time: 150, score: 0.9, text: "Major misinformation." }
 ];
 
-function sendToWhisper(videoUrl) {
-  console.log("🔍 New video detected!");
+async function sendToBackend(videoUrl) {
+  console.log("Sending request to backend");
+  try {
+        const response = await fetch("https://bfc3-2a00-a041-26a2-3a00-573-92dc-5c1d-9a10.ngrok-free.app/analyze", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: videoUrl })
+        });
 
-  return fetch("http://localhost:5100/analyze", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url: videoUrl })
-  })
-    .then(res => res.json())
-    .then(data => {
-      console.log("📝 Whisper transcript:", data.text);
-      console.log("⏱️ Timestamps:", data.segments);
+        const result = await response.json();
+        console.log("✅ Claims from backend:", result);
 
-      // OPTIONAL: Save to global if needed for later
-      window.whisperSegments = data.segments;
+        // You can assign to fakeClaims here if result.gpt_analysis is properly formatted
+        // fakeClaims = result.gpt_analysis.map(...);
 
-      // Now that we have segments, trigger the waveform
-      drawWaveform(); // make sure this uses whisperSegments if needed
-      startMarkerUpdate();
-
-    })
-    .catch(err => {
-      console.error("❌ Error talking to backend:", err);
-    });
+    } catch (error) {
+        console.error("❌ Error fetching claims:", error);
+    }
 }
 
 function detectVideoPlatformAndId() {
@@ -126,8 +120,11 @@ if (window.location.hostname.includes("tiktok.com")) {
           video = document.querySelector("video");
           if (video) {
             console.log("🔄 Redrawing waveform for new TikTok video");
-            drawWaveform();
-            startMarkerUpdate();
+            // 🔁 First send to Whisper for analysis
+            sendToBackend(window.location.href).then(() => {
+              drawWaveform();
+              startMarkerUpdate();
+            });
           }
         }, 1000);
       }
@@ -455,52 +452,28 @@ function showNotificationPopup(text) {
 }
 // ====== END DEBUG LOGS ======
 /**
- * Special TikTok support logic: Detects when user navigates to a new video.
- * Handles removing the waveform on non-video TikTok pages (e.g., Explore).
- */
-if (window.location.hostname.includes("tiktok.com")) {
-  let lastPath = window.location.pathname;
-  setInterval(() => {
-    if (window.location.pathname !== lastPath) {
-      lastPath = window.location.pathname;
-      const match = lastPath.match(/\/video\/(\d+)/);
-      if (match) {
-        console.log("👀 TikTok path changed to new video:", match[1]);
-        currentVideoId = match[1];
-        waitForVideo();
-
-        // 🔁 Redraw waveform and restart marker
-        setTimeout(() => {
-          video = document.querySelector("video");
-          if (video) {
-            console.log("🔄 Redrawing waveform for new TikTok video");
-            drawWaveform();
-            startMarkerUpdate();
-          }
-        }, 1000); // Delay ensures DOM and video are ready
-      }
-    }
-  }, 1000);
-}
-/**
  * YouTube-specific behavior: Watches for new videos and triggers redraw accordingly.
  */
 if (window.location.hostname.includes("youtube.com")) {
-  let lastPath = window.location.pathname;
+  let lastVideoId = "";
+
   setInterval(() => {
-    const currentPath = window.location.pathname;
-    if (currentPath !== lastPath) {
-      lastPath = currentPath;
-      console.log("🔄 YouTube path changed:", currentPath);
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentVideoId = urlParams.get("v");
+
+    if (currentVideoId && currentVideoId !== lastVideoId) {
+      lastVideoId = currentVideoId;
+      console.log("🔄 YouTube video changed:", currentVideoId);
 
       waitForVideo();
-
       setTimeout(() => {
         video = document.querySelector("video");
         if (video) {
           console.log("🔄 Redrawing waveform for new YouTube video");
-          drawWaveformWhenReady(); // wait for duration > 0
-          startMarkerUpdate();
+          sendToBackend(window.location.href).then(() => {
+            drawWaveform();
+            startMarkerUpdate();
+          });
         }
       }, 1000);
     }
