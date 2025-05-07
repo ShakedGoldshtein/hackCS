@@ -11,6 +11,8 @@ import re
 import nltk
 nltk.download('punkt', quiet=True)
 from nltk.tokenize import sent_tokenize
+import wikipedia
+wikipedia.set_lang("he")  # כדי לחפש בעברית
 
 
 load_dotenv(dotenv_path=Path("secret.env").resolve())
@@ -56,6 +58,18 @@ def analyze():
         # שלב 2: תמלול עם whisper
         result = model.transcribe(filename, language="he")
         text = result["text"]
+
+        #פונקציה לבדיקת טענה בוויקיפדיה
+        def check_claim_in_wikipedia(claim):
+            try:
+                summary = wikipedia.summary(claim, sentences=2)
+                return summary
+            except wikipedia.exceptions.DisambiguationError as e:
+                return f"שגיאה: הדף לא חד משמעי. נסה לדייק את הטענה. ({e.options[:3]})"
+            except wikipedia.exceptions.PageError:
+                return "שגיאה: לא נמצא דף רלוונטי בויקיפדיה."
+            except Exception as e:
+                return f"שגיאה כללית: {str(e)}"
 
         # שלב ביניים: ניקוי ופישוט טקסט
         def gpt_clean_text(text):
@@ -104,10 +118,17 @@ def analyze():
                     elif any(keyword in answer_text.lower() for keyword in ["שגוי", "לא נכון", "לא מדויק", "לא תקף"]):
                         verdict = "false"
 
+                    # בדיקה מול ויקיפדיה אם לא אמין
+                    if verdict == "false":
+                        print(f"🔎 בודק את הטענה בויקיפדיה: {claim}")
+                        wiki_info = check_claim_in_wikipedia(claim)
+                    else:
+                        wiki_info = None
                     answers.append({
                         "claim": claim,
                         "verdict": verdict,
-                        "gpt_answer": answer_text
+                        "gpt_answer": answer_text,
+                        "wikipedia_info": wiki_info
                     })
                 except Exception as e:
                     answers.append({
