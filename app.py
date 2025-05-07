@@ -1,5 +1,7 @@
 import ssl
 import certifi
+import json
+import re
 
 def custom_ssl_context(*args, **kwargs):
     return ssl.create_default_context(cafile=certifi.where())
@@ -21,7 +23,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 app = Flask(__name__)
 CORS(app, resources={r"/analyze": {"origins": "*"}}, methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
-model = whisper.load_model("small")  # אפשר גם tiny או base אם אתה רוצה שזה יהיה מהיר
+model = whisper.load_model("large")  # אפשר גם tiny או base אם אתה רוצה שזה יהיה מהיר
 
 @app.route("/analyze", methods=["OPTIONS"])
 def analyze_options():
@@ -32,15 +34,13 @@ def analyze():
 
     data = request.get_json()
     url = data.get("url")
-
+    print(f"[INFO] Received URL: {url}")
     if not url:
-        return jsonify({"error": "Missing URL"}), 400
-
-    print("📥 URL שהתקבל:", url)
+        return jsonify({"error": "No URL provided"}), 400
 
     # שם זמני לקובץ
     filename = f"audio_{uuid.uuid4()}.mp3"
-
+    json_filename = f"transcript_{uuid.uuid4()}.json"
     try:
         print("⬇️ מוריד אודיו מהסרטון עם yt-dlp...")
         print("✅ yt-dlp path:", subprocess.run(["which", "yt-dlp"], capture_output=True, text=True).stdout.strip())
@@ -59,6 +59,35 @@ def analyze():
         # שלב 2: תמלול עם whisper
         result = model.transcribe(filename, language="he")
         text = result["text"]
+
+        # Clean and shorten filename based on URL
+        def slugify_url(url):
+            # Remove protocol, trailing slash, and special characters
+            slug = re.sub(r'https?://', '', url)
+            slug = re.sub(r'[^a-zA-Z0-9_-]', '_', slug)
+            return slug[:80]  # Trim if it's too long
+
+        slug = slugify_url(url)
+        json_filename = f"transcript_{slug}.json"
+        json_path = os.path.join("transcripts", json_filename)
+
+        # Extract only required fields
+        filtered_segments = [
+            {
+                "id": seg["id"],
+                "start": seg["start"],
+                "end": seg["end"],
+                "text": seg["text"]
+            }
+            for seg in result["segments"]
+        ]
+
+        # Save filtered transcript to file
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(filtered_segments, f, ensure_ascii=False, indent=2)
+
+        print(f"[✅] Cleaned transcript saved to {os.path.abspath(json_path)}")
+        return jsonify({"message": "Transcript complete", "file": json_filename})
 
         def check_text_with_gpt(text):
             response = openai.ChatCompletion.create(
