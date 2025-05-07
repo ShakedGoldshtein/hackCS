@@ -17,7 +17,7 @@ document.getElementById("analyze-btn").addEventListener("click", async () => {
     document.getElementById("result").innerText = "⏳ מנתח את הסרטון...";
 
     try {
-        const response = await fetch("https://0c5a-132-69-234-130.ngrok-free.app/analyze", {
+        const response = await fetch("https://b539-5-29-19-78.ngrok-free.app/analyze", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ url: videoUrl })
@@ -32,18 +32,10 @@ document.getElementById("analyze-btn").addEventListener("click", async () => {
         }
 
         const result = await response.json();
-        // וידוא שמבנה הנתונים תקין
-        if (!result.gpt_analysis || !Array.isArray(result.gpt_analysis)) {
-            document.getElementById("result").innerText = "❌ שגיאה: פורמט תשובת השרת אינו תקין.";
-            return;
-        }
         document.getElementById("result").innerText =
-            "טענות שזוהו בטקסט:\n\n" +
-            result.gpt_analysis.map((entry, i) =>
-                `טענה מספר ${i + 1}:\n"${entry.claim}"\n\n` +
-                `${entry.verdict === "true" ? "אמין" : (entry.verdict === "false" ? "לא אמין" : "❓ לא ידוע")}\n` +
-                `${entry.gpt_answer ? "נימוק: " + entry.gpt_answer : "ℹ️ לא סופק נימוק"}\n`
-            ).join("\n\n");
+            "✅ " + result.verdict + "\n\n" +
+            result.reason + "\n\n" +
+            "🔎 ניתוח GPT:\n" + result.gpt_analysis;
 
     } catch (error) {
         document.getElementById("result").innerText = "❌ שגיאה: " + error.message;
