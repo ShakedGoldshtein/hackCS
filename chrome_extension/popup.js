@@ -1,51 +1,95 @@
-document.getElementById("analyze-btn").addEventListener("click", async () => {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab || !tab.url) {
-        document.getElementById("result").innerText = "לא הצלחנו לקרוא את כתובת הסרטון.";
-        return;
-    }
+const defaultSettings = {
+    bgColor: 'rgba(0, 0, 0, 0.3)',
+    lineColor: '#1DB9FF',
+    timeMarkerColor: '#ffffff',
+    notificationDuration: 15,
+    jumpBackSeconds: 10,
+    showWaveform: true,
+    soundEnabled: true
+};
 
-    const videoUrl = tab.url;
+document.addEventListener('DOMContentLoaded', loadSettings);
 
-    // בדיקה שהכתובת היא של סרטון טיקטוק
-    if (!videoUrl.includes("tiktok.com") || !videoUrl.includes("/video/")) {
-        document.getElementById("result").innerText = "אנא פתח סרטון טיקטוק לפני הלחיצה על הכפתור.";
-        return;
-    }
+document.getElementById('saveSettings').addEventListener('click', () => {
+    const bgColorHex = document.getElementById('bgColor').value;
+    const bgAlpha = parseFloat(document.getElementById('bgAlpha').value);
+    const lineColor = document.getElementById('lineColor').value;
+    const timeMarkerColor = document.getElementById('timeMarkerColor').value;
+    const notificationDuration = parseInt(document.getElementById('notificationDuration').value) || 15;
+    const jumpBackSeconds = parseInt(document.getElementById('jumpBackSeconds').value) || 10;
+    const showWaveform = document.getElementById('showWaveform').checked;
+    const soundEnabled = document.getElementById('soundEnabled').checked;
 
-    // הצגת הודעה זמנית
-    document.getElementById("result").innerText = "⏳ מנתח את הסרטון...";
+    const bgColorRGBA = hexToRGBA(bgColorHex, bgAlpha);
 
-    try {
-        const response = await fetch("https://0c5a-132-69-234-130.ngrok-free.app/analyze", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url: videoUrl })
+    chrome.storage.sync.set({
+        bgColor: bgColorRGBA,
+        lineColor,
+        timeMarkerColor,
+        notificationDuration,
+        jumpBackSeconds,
+        showWaveform,
+        soundEnabled
+    }, () => {
+        // send message properly to active tab
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs.length > 0) {
+                chrome.tabs.sendMessage(tabs[0].id, { action: "updateSettings" }).catch((error) => {
+                    console.warn("Could not send message:", error);
+                });
+            }
+        });
+    });
+});
+
+document.getElementById('resetSettings').addEventListener('click', () => {
+    chrome.storage.sync.set(defaultSettings, () => {
+        // After saving defaults, send update to the active tab
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs.length > 0) {
+                chrome.tabs.sendMessage(tabs[0].id, { action: "updateSettings" }).catch((error) => {
+                    console.warn("Could not send message after restoring defaults:", error);
+                });
+            }
         });
 
-        const contentType = response.headers.get("content-type") || "";
-        if (!contentType.includes("application/json")) {
-            const text = await response.text();
-            document.getElementById("result").innerText =
-                "❌ שגיאה מהשרת:\n\n" + text;
-            return;
-        }
-
-        const result = await response.json();
-        // וידוא שמבנה הנתונים תקין
-        if (!result.gpt_analysis || !Array.isArray(result.gpt_analysis)) {
-            document.getElementById("result").innerText = "❌ שגיאה: פורמט תשובת השרת אינו תקין.";
-            return;
-        }
-        document.getElementById("result").innerText =
-            "טענות שזוהו בטקסט:\n\n" +
-            result.gpt_analysis.map((entry, i) =>
-                `טענה מספר ${i + 1}:\n"${entry.claim}"\n\n` +
-                `${entry.verdict === "true" ? "אמין" : (entry.verdict === "false" ? "לא אמין" : "❓ לא ידוע")}\n` +
-                `${entry.gpt_answer ? "נימוק: " + entry.gpt_answer : "ℹ️ לא סופק נימוק"}\n`
-            ).join("\n\n");
-
-    } catch (error) {
-        document.getElementById("result").innerText = "❌ שגיאה: " + error.message;
-    }
+        loadSettings(); // Reloads the popup UI values visually
+    });
 });
+
+function loadSettings() {
+    chrome.storage.sync.get(Object.keys(defaultSettings), (data) => {
+        document.getElementById('bgColor').value = rgbaToHex(data.bgColor || defaultSettings.bgColor);
+        document.getElementById('bgAlpha').value = rgbaToAlpha(data.bgColor || defaultSettings.bgColor);
+        document.getElementById('lineColor').value = data.lineColor || defaultSettings.lineColor;
+        document.getElementById('timeMarkerColor').value = data.timeMarkerColor || defaultSettings.timeMarkerColor;
+        document.getElementById('notificationDuration').value = data.notificationDuration || defaultSettings.notificationDuration;
+        document.getElementById('jumpBackSeconds').value = data.jumpBackSeconds || defaultSettings.jumpBackSeconds;
+        document.getElementById('showWaveform').checked = data.showWaveform !== false;
+        document.getElementById('soundEnabled').checked = data.soundEnabled !== false;
+    });
+}
+
+function hexToRGBA(hex, alpha) {
+    const r = parseInt(hex.substr(1, 2), 16);
+    const g = parseInt(hex.substr(3, 2), 16);
+    const b = parseInt(hex.substr(5, 2), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function rgbaToHex(rgba) {
+    if (!rgba) return '#000000';
+    const parts = rgba.match(/\d+/g);
+    if (!parts) return '#000000';
+    const r = parseInt(parts[0]).toString(16).padStart(2, '0');
+    const g = parseInt(parts[1]).toString(16).padStart(2, '0');
+    const b = parseInt(parts[2]).toString(16).padStart(2, '0');
+    return `#${r}${g}${b}`;
+}
+
+function rgbaToAlpha(rgba) {
+    if (!rgba) return 0.3;
+    const parts = rgba.match(/[\d\.]+/g);
+    if (!parts || parts.length < 4) return 0.3;
+    return parseFloat(parts[3]);
+}
