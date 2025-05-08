@@ -5,3 +5,4 @@ openai-whisper
 python-dotenv
 yt-dlp
 certifi
+tinydb
