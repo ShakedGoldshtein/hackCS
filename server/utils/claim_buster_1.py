@@ -33,7 +33,7 @@ def fact_check_claims(transcript_segments):
     user_message = json.dumps(transcript_segments, ensure_ascii=False)
 
     response = client.chat.completions.create(
-        model="gpt-4",  # Use a supported model name
+        model="gpt-4.1-nano",  # Use a supported model name
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_message}
