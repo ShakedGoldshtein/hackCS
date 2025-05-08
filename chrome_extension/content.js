@@ -425,15 +425,39 @@ function showNotificationPopup(text) {
     popup.style.transition = 'opacity 0.5s ease';
     document.body.appendChild(popup);
   }
+
+  // Main message
   popup.textContent = "Problematic Claim Detected: " + text;
+  popup.insertAdjacentHTML('beforeend', '<br><br>');
+  // Build mailto link with dynamic subject
+  const claim = text;
+  const url   = window.location.href;
+  const subject = encodeURIComponent(`Feedback about claim "${claim}" in ${url}`);
+  const body    = encodeURIComponent(
+    `Timestamp: ${video.currentTime}\n\nClaim: ${claim}\n\nYour feedback: `
+  );
+
+  const feedbackLink = document.createElement('a');
+  feedbackLink.href = `mailto:feedback@yourdomain.com?subject=${subject}&body=${body}`;
+  feedbackLink.textContent = `📧 Click to provide feedback`;
+  feedbackLink.style.color = '#ffffff';
+  feedbackLink.style.textDecoration = 'underline';
+  feedbackLink.style.marginLeft = '8px';
+  feedbackLink.target = '_blank';
+  popup.appendChild(feedbackLink);
+
+  // Show popup
   popup.style.opacity = '1';
   if (settings.soundEnabled) {
-	dingAudio.play().catch(e => console.log('Ding sound failed:', e));
+    dingAudio.play().catch(e => console.log('Ding sound failed:', e));
   }
+
+  // Auto-hide
   setTimeout(() => {
     popup.style.opacity = '0';
   }, (settings.notificationDuration || 15) * 1000);
-    // ====== ADD DEBUG LOGS ======
+
+  // (existing debug logs unchanged)
   console.log("settings.soundEnabled =", settings.soundEnabled);
   if (dingAudio) {
     console.log("dingAudio object exists");
