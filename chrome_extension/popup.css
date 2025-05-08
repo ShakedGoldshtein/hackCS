@@ -1,0 +1,50 @@
+body {
+    background-color: #f0f0f0;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 10px;
+}
+
+h1 {
+    font-size: 22px; /* <<<<< Title font size ("Settings") */
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.container {
+    width: 300px;
+}
+
+.setting {
+    margin-bottom: 15px;
+}
+
+/* Setting labels text */
+.setting label {
+    font-size: 14px; /* <<<<< Size for each label ("Background Color:", "Notification Duration:", etc.) */
+}
+
+/* Input fields and sliders */
+input[type="color"],
+input[type="number"],
+input[type="range"] {
+    width: 100%;
+    margin-top: 5px;
+}
+
+/* Buttons styling */
+button {
+    background-color: #1DB9FF;
+    color: white;
+    border: none;
+    padding: 10px;
+    margin-top: 10px;
+    width: 100%;
+    font-size: 14px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #0a8ac2;
+}
