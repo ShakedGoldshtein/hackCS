@@ -51,18 +51,46 @@ def transcribe_audio(filename: str, language: str = "en") -> dict:
 
 
 
-def pipe_unit(system_prompt: str, user_prompt: str, model="gpt-4.1-nano") -> dict:
+def pipe_unit(system_prompt_file: str, user_prompt: str, model="gpt-4.1-nano") -> dict:
     """
     Send a message to the OpenAI API and return the response.
     """
-    
-    response = client.responses.create(
-    model=model,  # Use a valid model name like gpt-4, gpt-4-turbo, or gpt-3.5-turbo
-    messages=[
-        {"role": "system", "content": system_prompt},  # How the assistant should behave
-        {"role": "user", "content": user_prompt}       # The actual prompt or input
-    ],
-    temperature=0.2
-    )
+    with open(system_prompt_file, "r", encoding="utf-8") as f:
+        system_prompt = f.read()
 
-    return response.choices[0].message.content.strip()
+    response = client.responses.create(
+        model=model,
+        input=[
+            {
+                "role": "system",
+                "content": [
+                    {
+                        "type": "input_text",
+                        "text": system_prompt
+                    }
+                ]
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "input_text",
+                        "text": user_prompt
+                    }
+                ]
+            }
+        ],
+        text={
+            "format": {
+                "type": "text"
+            }
+        },
+        reasoning={},
+        tools=[],
+        temperature=0.2,
+        max_output_tokens=2048,
+        top_p=1,
+        store=False
+    )
+    text = response.output[0].content[0].text
+    return text.strip()
