@@ -31,7 +31,7 @@ async function sendToBackend(videoUrl) {
         const result = await response.json();
         console.log("Recieved information from backend (fact checking pipeline):", result);
 
-        // Assume your backend JSON is { Pings: [ {start,end,claim_text}, … ] }
+          // Assume your backend JSON is { Pings: [ {start,end,claim_text}, … ] }
         fakeClaims = result.pings.map(p => ({
           time : p.start,
           text : p.claim_text,
@@ -57,6 +57,7 @@ function calculateCredibilityScore(data, alpha = 1.0) {
   if (totalDurationMinutes === 0) return 0.0;
 
   const severityMap = {
+    unverified: 0.3,
     medium: 0.6,
     high: 0.9
   };
@@ -383,12 +384,12 @@ function drawWaveform() {
     container.appendChild(dot);
   });
 }
-
+//defined colors for dots per severity of claim
 function getDotColor(score) {
-  if (score <= 0.3) return 'gray';
-  if (score <= 0.6) return 'yellow';
-  if (score <= 0.8) return 'orange';
-  return 'red';
+  if (score === "unknown") return "gray";
+  if (score === "medium") return "yellow";
+  if (score === "high") return "red";
+  return "gray"; // fallback for anything unexpected
 }
 
 /**
