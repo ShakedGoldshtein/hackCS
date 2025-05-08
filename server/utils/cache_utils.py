@@ -1,6 +1,8 @@
 from tinydb import TinyDB, Query
 from datetime import datetime
 
+from utils.analysis_utils import analyze_url
+
 def get_or_generate_entry(url, generator_func):
     db = TinyDB("db.json")
     responses_table = db.table("responses")
@@ -13,8 +15,8 @@ def get_or_generate_entry(url, generator_func):
 
     # If not found, run function to generate entries
     entries = generator_func(url)
-    if not isinstance(entries, list):
-        raise ValueError("Function must return a list of dicts")
+    # if not isinstance(entries, list):
+    #     raise ValueError("Function must return a list of dicts")
 
     # Create new record
     created_at = datetime.utcnow().isoformat()
@@ -26,3 +28,15 @@ def get_or_generate_entry(url, generator_func):
     print("🌟 New entry created, url:", url)
     responses_table.insert(new_doc)
     return new_doc
+
+def build_response(url):
+    response = {}
+    data_entires = analyze_url(url)
+    max_end = max(entry["end"] for entry in data_entires)
+
+    # response["url"] = url
+    response["pings"] = {}
+    response["pings"]["entries"] = data_entires
+    response["pings"]["total_duration"] = max_end
+    
+    return response
