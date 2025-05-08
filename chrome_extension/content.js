@@ -52,18 +52,28 @@ async function sendToBackend(videoUrl) {
 
 //helper function to calculate cred score of a video
 function calculateCredibilityScore(data, alpha = 1.0) {
-    const pins = data.Pins || [];
-    const totalDurationMinutes = (data.total_duration || 0) / 60;
+  const pins = data.Pins || [];
+  const totalDurationMinutes = (data.total_duration || 0) / 60;
 
-    if (totalDurationMinutes === 0) {
-        return 0.0; // Avoid division by zero
+  if (totalDurationMinutes === 0) return 0.0;
+
+  const severityMap = {
+    medium: 0.6,
+    high: 0.9
+  };
+
+  const totalSeverity = pins.reduce((sum, pin) => {
+    let severityValue = pin.severity;
+    if (typeof severityValue === "string") {
+      severityValue = severityMap[severityValue.toLowerCase()] || 0;
     }
+    return sum + severityValue;
+  }, 0);
 
-    const totalSeverity = pins.reduce((sum, pin) => sum + (pin.severity || 0), 0);
-    const penalty = alpha * (totalSeverity / totalDurationMinutes) * 100;
-    const credibility = Math.max(0, 100 - penalty);
+  const penalty = alpha * (totalSeverity / totalDurationMinutes) * 100;
+  const credibility = Math.max(0, 100 - penalty);
 
-    return Math.round(credibility * 100) / 100; // Round to 2 decimal places
+  return Math.round(credibility * 100) / 100;
 }
 
 function detectVideoPlatformAndId() {
