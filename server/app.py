@@ -7,6 +7,7 @@ from config import OPENAI_API_KEY
 from openai import OpenAI
 from tinydb import TinyDB, Query
 
+from utils.cache_utils import build_response, get_or_generate_entry
 from utils.analysis_utils import analyze_url
 from utils.audio_utils import download_audio, cleanup_audio
 from utils.whisper_utils import transcribe_audio
@@ -31,18 +32,8 @@ def analyze():
         url  = data.get("url")
         if not url:
             return jsonify({"error": "No URL provided"}), 400
-        
-        response = {}
 
-        # ping responses
-        response["pings"] = {} 
-        data_entires = analyze_url(url) 
-        max_end = max(entry["end"] for entry in data_entires)
-        response["pings"]['entries'] = data_entires
-        response["pings"]['max_end'] = max_end
-        response["pings"]['url'] = url
-
-        # audio_file = Path("audio") / f"audio_{uuid.uuid4()}.mp3"
+        response = get_or_generate_entry(url, build_response)        
         
         return jsonify(response), 200
 
