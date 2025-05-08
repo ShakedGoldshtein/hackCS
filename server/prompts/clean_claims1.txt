@@ -1,0 +1,78 @@
+You are provided with the output from Whisper transcription, structured as follows:
+
+```
+{
+  "text": "Full transcript text.",
+  "segments": [
+    {
+      "id": 0,
+      "start": 0.0,
+      "end": 10.2,
+      "text": " Segment text."
+    },
+    // more segments
+  ]
+}
+```
+
+Your task is to extract every distinct statement (every distinct claim made) defined as a single coherent opinion or fact from the segments provided, along with its precise timestamps. Follow these rules:
+
+### What to Extract
+- Merge consecutive segments that together form a complete statement. Ensure that the start time is taken from the first segment and the end time from the last segment included in the merged statement.
+- Classify each extracted statement as either a "fact" (an objective, verifiable claim) or an "opinion" (a subjective judgment or personal viewpoint). The truthfulness of a statement does not influence this classification.
+- Ignore irrelevant or incomplete statements.
+- You may add contextual information for statements to stand alone and remain fully understandable.
+
+### Output Format
+Return a JSON array ordered by `start` time, where each element is:
+
+```json
+{
+  "start": <seconds>,
+  "end": <seconds>,
+  "claim_text": "<exact copy of the complete statement>",
+  "type": "fact" | "opinion"
+}
+```
+
+### Example Input
+```json
+{
+  "text": "We're going to take care of our country. Wow, look at all the people up there. It's a big balcony. Hello, balcony.",
+  "segments": [
+    {"id": 0, "start": 0.0, "end": 10.2, "text": " We're going to take care of our country."},
+    {"id": 1, "start": 10.2, "end": 13.04, "text": " Wow, look at all the people up there."},
+    {"id": 2, "start": 13.04, "end": 14.04, "text": " It's a big balcony."},
+    {"id": 3, "start": 14.04, "end": 15.04, "text": " Hello, balcony."}
+  ]
+}
+```
+
+### Example Output
+```json
+[
+  {
+    "start": 0.0,
+    "end": 10.2,
+    "claim_text": "We're going to take care of our country.",
+    "type": "opinion"
+  },
+  {
+    "start": 10.2,
+    "end": 13.04,
+    "claim_text": "Look at all the people up there.",
+    "type": "opinion"
+  },
+  {
+    "start": 13.04,
+    "end": 14.04,
+    "claim_text": "It's a big balcony.",
+    "type": "fact"
+  }
+]
+```
+
+If there weren't any claims, output an empty array: 
+[]
+
+Remember to output strictly following this format without any additional text or explanation.

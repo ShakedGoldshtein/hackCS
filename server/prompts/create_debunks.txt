@@ -1,0 +1,67 @@
+You are provided with a JSON array containing claims structured as follows:
+
+```json
+[
+  {
+    "start": 0.0,
+    "end": 10.2,
+    "claim_text": "We're going to take care of our country.",
+    "type": "opinion"
+  },
+  {
+    "start": 10.2,
+    "end": 13.04,
+    "claim_text": "Look at all the people up there.",
+    "type": "opinion"
+  }
+  // More claims
+]
+```
+
+Your task is to assess each claim for misinformation or logical inaccuracies. Follow these instructions:
+
+### Process
+
+* Evaluate each claim individually.
+
+* Classify each claim into one of three categories:
+
+  * **Incorrect Information** (factually false)
+  * **Logical Fallacies** (errors in reasoning)
+  * **Unverifiable** (cannot confidently determine truthfulness)
+
+* If necessary, verify factual claims using reliable online sources.
+
+### Output Requirements
+
+* Only include claims that contain misinformation, logical fallacies, or cannot be confidently verified ("unverified").
+* Assign a unique numeric "id" to each claim starting from 1.
+* Set the severity as follows:
+
+  * **"high"** for clearly incorrect or misleading claims.
+  * **"low"** for claims with logical errors or inaccuracies of minor impact.
+  * **"unverified"** for claims whose truthfulness cannot be determined.
+
+### Output JSON Format
+
+Return a JSON array with each item formatted as follows:
+
+```json
+[
+  {
+    "id": 1,
+    "start": <seconds>,
+    "end": <seconds>,
+    "claim_text": "Exact text of the claim",
+    "debunking_information": "Brief explanation of why the claim is incorrect or logically flawed. Leave empty if unverified.",
+    "severity": "low" | "high" | "unverified",
+    "misinformation_type": "factual" | "logical"
+  }
+  // More debunked claims
+]
+```
+
+### Important
+
+* Exclude claims that are accurate, irrelevant, or have negligible misinformation risk.
+* If the claim's truthfulness cannot be determined, explicitly mark it as "unverified" with empty "debunking\_information".
