@@ -34,7 +34,6 @@ async function sendToBackend(videoUrl) {
         // Assume your backend JSON is { Pings: [ {start,end,claim_text}, … ] }
         fakeClaims = result.pings.map(p => ({
           time : p.start,
-          score: p.score ?? 0.5,       // default if you don’t return a score
           text : p.claim_text,
           explanation : p.debunking_information,
           severity : p.severity
@@ -473,7 +472,7 @@ function hideTooltip() {
 function checkForClaimNotification(currentTime) {
   fakeClaims.forEach(claim => {
     if (!notifiedClaims.has(claim.time) && currentTime >= claim.time && currentTime - claim.time < 5) {
-      showNotificationPopup(claim.text);
+      showNotificationPopup(`${claim.text}<br>${claim.explanation}`);
       notifiedClaims.add(claim.time);
     }
   });
