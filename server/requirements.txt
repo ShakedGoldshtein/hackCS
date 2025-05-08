@@ -1,0 +1,7 @@
+Flask
+flask-cors
+openai
+openai-whisper
+python-dotenv
+yt-dlp
+certifi
