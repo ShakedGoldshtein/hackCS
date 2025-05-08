@@ -3,7 +3,8 @@ import re
 import json
 from pathlib import Path
 from utils.audio_utils import download_audio
-from utils.whisper_utils import transcribe_audio
+from utils.openai_utils import transcribe_audio
+from utils.openai_utils import analyze_transcript_with_gpt
 
 def analyze_url(url):
     """
@@ -11,7 +12,7 @@ def analyze_url(url):
     and saving the transcript segments as a JSON file.
 
     Returns:
-        dict: The full transcript dictionary.
+        transcribe path
     """
     try:
         # Create required directories
@@ -27,7 +28,7 @@ def analyze_url(url):
 
         # Download and transcribe
         download_audio(url, audio_file)
-        transcript = transcribe_audio(audio_file, language="he")
+        transcript = transcribe_audio(audio_file, language="en")
 
         # Create a safe slug for filename
         slug = re.sub(r'https?://', '', url)
@@ -42,8 +43,7 @@ def analyze_url(url):
             json.dumps(transcript, ensure_ascii=False, indent=2),
             encoding="utf-8"
         )
-
-        return transcript
+        return json_path
 
     except Exception as e:
         print(f"❌ [Error] when analyzing URL {url}: {e}")
