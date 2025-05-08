@@ -88,7 +88,7 @@ def pipe_unit(system_prompt_file: str, user_prompt: str, model="gpt-4.1-nano") -
         reasoning={},
         tools=[],
         temperature=0.2,
-        max_output_tokens=2048,
+        # max_output_tokens=4096,
         top_p=1,
         store=False
     )

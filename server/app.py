@@ -31,19 +31,25 @@ def analyze():
         url  = data.get("url")
         if not url:
             return jsonify({"error": "No URL provided"}), 400
+        
+        response = {}
 
-        audio_file = Path("audio") / f"audio_{uuid.uuid4()}.mp3"
+        # ping responses
+        response["pings"] = {} 
+        data_entires = analyze_url(url) 
+        max_end = max(entry["end"] for entry in data_entires)
+        response["pings"]['entries'] = data_entires
+        response["pings"]['max_end'] = max_end
+        response["pings"]['url'] = url
 
-        transcribe_json_file = analyze_url(url)
+        # audio_file = Path("audio") / f"audio_{uuid.uuid4()}.mp3"
+        
+        return jsonify(response), 200
+
     except Exception as e:
         print(f"[ERROR] {e}")
         return jsonify({"error": str(e)}), 500
 
-    finally:
-        print(f"🗑️ Cleaning up audio file: {audio_file}")
-        cleanup_audio(audio_file)
-        
-    return jsonify({"message": f"Analysis complete: {transcribe_json_file}"}), 200
 
 if __name__ == "__main__":
     app.run(port=5100, debug=True)

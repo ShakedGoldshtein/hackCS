@@ -2,7 +2,8 @@ import uuid
 import re
 import json
 from pathlib import Path
-from utils.audio_utils import download_audio
+from utils.debunk_utils import generate_pings
+from utils.audio_utils import cleanup_audio, download_audio
 from utils.openai_utils import transcribe_audio
 from utils.openai_utils import analyze_transcript_with_gpt
 
@@ -28,7 +29,8 @@ def analyze_url(url):
 
         # Download and transcribe
         download_audio(url, audio_file)
-        transcript = transcribe_audio(audio_file, language="en")
+        transcript = str(transcribe_audio(audio_file, language="en"))
+
 
         # Create a safe slug for filename
         slug = re.sub(r'https?://', '', url)
@@ -37,14 +39,19 @@ def analyze_url(url):
         json_path = transcript_dir / json_name
         transcript_absolute_path = json_path.resolve()
         print(f"📁 Transcript path: {transcript_absolute_path}")
-
+        # print(f"[DEBUG]: transcipt1 type: {type(transcript)}")
         # Save only segments to JSON
         json_path.write_text(
             json.dumps(transcript, ensure_ascii=False, indent=2),
             encoding="utf-8"
         )
-        return json_path
+        response_pings = generate_pings(transcript, model="gpt-4.1-nano")
+        return response_pings
 
     except Exception as e:
         print(f"❌ [Error] when analyzing URL {url}: {e}")
         return {"error": str(e)}
+    
+    finally:
+        print(f"🗑️ Cleaning up audio file: {audio_file}")
+        cleanup_audio(audio_file)
