@@ -32,7 +32,7 @@ def analyze():
     print(f"📁 Absolute path: {absolute_path}")
     try:
         download_audio(url, audio_file)
-        transcript  = transcribe_audio(audio_file, language="he")
+        transcript = transcribe_audio(audio_file, language="he")
         slug = re.sub(r'https?://', '', url)
         slug = re.sub(r'[^\w-]', '_', slug)[:80]
         json_name = f"transcript_{slug}.json"
@@ -42,7 +42,7 @@ def analyze():
         print(f"📁 transcript_absolute_path: {transcript_absolute_path}")
 
         json_path.write_text(
-            json.dumps(transcript["segments"], ensure_ascii=False, indent=2),
+            json.dumps(transcript, ensure_ascii=False, indent=2),
             encoding="utf-8"
         )
         return transcript

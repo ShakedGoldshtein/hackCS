@@ -19,7 +19,7 @@ const fakeClaims = [
 async function sendToBackend(videoUrl) {
   console.log("Sending request to backend");
   try {
-        const response = await fetch("https://bfc3-2a00-a041-26a2-3a00-573-92dc-5c1d-9a10.ngrok-free.app/analyze", {
+        const response = await fetch("https://3616-132-68-34-173.ngrok-free.app/analyze", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ url: videoUrl })
