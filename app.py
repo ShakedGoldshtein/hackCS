@@ -23,7 +23,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 app = Flask(__name__)
 CORS(app, resources={r"/analyze": {"origins": "*"}}, methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
-model = whisper.load_model("large")  # אפשר גם tiny או base אם אתה רוצה שזה יהיה מהיר
+model = whisper.load_model("base")  # אפשר גם tiny או base אם אתה רוצה שזה יהיה מהיר
 
 @app.route("/analyze", methods=["OPTIONS"])
 def analyze_options():
