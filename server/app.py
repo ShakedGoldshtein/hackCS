@@ -26,19 +26,19 @@ def analyze_options():
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
-    data = request.get_json(force=True)
-    url  = data.get("url")
-    if not url:
-        return jsonify({"error": "No URL provided"}), 400
-
-    audio_file = Path("audio") / f"audio_{uuid.uuid4()}.mp3"
-
-    # audio_dir = Path("audio")
-    # audio_dir.mkdir(exist_ok=True)
-    # audio_file = audio_dir / f"audio_{uuid.uuid4()}.mp3"
-    # absolute_path = audio_file.resolve()
-    # print(f"📁 Absolute path: {absolute_path}")
     try:
+        data = request.get_json(force=True)
+        url  = data.get("url")
+        if not url:
+            return jsonify({"error": "No URL provided"}), 400
+
+        audio_file = Path("audio") / f"audio_{uuid.uuid4()}.mp3"
+
+        # audio_dir = Path("audio")
+        # audio_dir.mkdir(exist_ok=True)
+        # audio_file = audio_dir / f"audio_{uuid.uuid4()}.mp3"
+        # absolute_path = audio_file.resolve()
+        # print(f"📁 Absolute path: {absolute_path}")
         transcribe_json_file = analyze_url(url)
         return jsonify({"message": "Analysis complete"}), 200
     except Exception as e:
