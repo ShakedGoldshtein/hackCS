@@ -9,8 +9,10 @@ let lastKnownDuration = 0;
 let notifiedClaims = new Set();
 let dingAudio = new Audio(chrome.runtime.getURL('sounds/ding.mp3'));
 let lastDetectedVideoId = null;
+let fakeClaims
 
-const fakeClaims = [
+// fake claim array loaded with default values.
+fakeClaims = [
   { time: 30, score: 0.2, text: "Minor error." },
   { time: 90, score: 0.6, text: "Significant false claim." },
   { time: 150, score: 0.9, text: "Major misinformation." }
@@ -27,13 +29,17 @@ async function sendToBackend(videoUrl) {
         });
 
         const result = await response.json();
-        console.log("✅ Claims from backend:", result);
+        console.log("Recieved information from backend (fact checking pipeline):", result);
 
-        // You can assign to fakeClaims here if result.gpt_analysis is properly formatted
-        // fakeClaims = result.gpt_analysis.map(...);
-
+        // Assume your backend JSON is { Pings: [ {start,end,claim_text}, … ] }
+        fakeClaims = result.pings.map(p => ({
+          time : p.start,
+          score: p.score ?? 0.5,       // default if you don’t return a score
+          text : p.claim_text,
+          explanation : p.debunking_information
+        }));
     } catch (error) {
-        console.error("❌ Error fetching claims:", error);
+        console.error("Error fetching information from backend:", error);
     }
 }
 
@@ -63,6 +69,35 @@ function detectVideoPlatformAndId() {
 
   return { platform: null, videoId: null };
 }
+
+//placeholder block_list of blocked websites
+
+const BLOCK_LIST = [
+    "abc123",           // YouTube video IDs
+    "7498347420737162513",
+    "XUtCxiM_Veo"// TikTok video IDs
+];
+
+// on every page load, check for video link, and allow link only if page is not blocked
+window.addEventListener("load", () => {
+  const url = window.location.href;
+
+  // YouTube
+  let ytMatch = url.match(/[?&]v=([^&]+)/);
+  if (ytMatch && BLOCK_LIST.includes(ytMatch[1])) {
+    document.querySelector("ytd-watch-flexy")?.remove();
+    showBlockedBanner("This video has been blocked by your extension.")
+    console.log("This video has been blocked by your extension.");
+  }
+
+  // TikTok
+  let ttMatch = url.match(/tiktok\.com\/video\/(\d+)/);
+  if (ttMatch && BLOCK_LIST.includes(ttMatch[1])) {
+    document.querySelector("video")?.remove();
+    showBlockedBanner("This video has been blocked by your extension.")
+    console.log("This video has been blocked by your extension.");
+  }
+});
 
 function observeTikTokVideoChanges() {
   const observer = new MutationObserver(() => {
@@ -425,15 +460,39 @@ function showNotificationPopup(text) {
     popup.style.transition = 'opacity 0.5s ease';
     document.body.appendChild(popup);
   }
+
+  // Main message
   popup.textContent = "Problematic Claim Detected: " + text;
+  popup.insertAdjacentHTML('beforeend', '<br><br>');
+  // Build mailto link with dynamic subject
+  const claim = text;
+  const url   = window.location.href;
+  const subject = encodeURIComponent(`Feedback about claim "${claim}" in ${url}`);
+  const body    = encodeURIComponent(
+    `Timestamp: ${video.currentTime}\n\nClaim: ${claim}\n\nYour feedback: `
+  );
+
+  const feedbackLink = document.createElement('a');
+  feedbackLink.href = `mailto:feedback@yourdomain.com?subject=${subject}&body=${body}`;
+  feedbackLink.textContent = `📧 Click to provide feedback`;
+  feedbackLink.style.color = '#ffffff';
+  feedbackLink.style.textDecoration = 'underline';
+  feedbackLink.style.marginLeft = '8px';
+  feedbackLink.target = '_blank';
+  popup.appendChild(feedbackLink);
+
+  // Show popup
   popup.style.opacity = '1';
   if (settings.soundEnabled) {
-	dingAudio.play().catch(e => console.log('Ding sound failed:', e));
+    dingAudio.play().catch(e => console.log('Ding sound failed:', e));
   }
+
+  // Auto-hide
   setTimeout(() => {
     popup.style.opacity = '0';
   }, (settings.notificationDuration || 15) * 1000);
-    // ====== ADD DEBUG LOGS ======
+
+  // (existing debug logs unchanged)
   console.log("settings.soundEnabled =", settings.soundEnabled);
   if (dingAudio) {
     console.log("dingAudio object exists");
@@ -479,4 +538,42 @@ if (window.location.hostname.includes("youtube.com")) {
       }, 1000);
     }
   }, 1000);
+}
+
+function showBlockedBanner(message) {
+  if (document.getElementById("extension-blocked-banner")) return;
+  const banner = document.createElement("div");
+  banner.id = "extension-blocked-banner";
+  banner.textContent = message;
+  Object.assign(banner.style, {
+    position: "fixed",
+    top: "0",
+    left: "0",
+    width: "100%",
+    padding: "12px 0",
+    backgroundColor: "#d32f2f",
+    color: "white",
+    fontSize: "16px",
+    fontWeight: "bold",
+    textAlign: "center",
+    zIndex: "2147483647",
+    boxShadow: "0 2px 4px rgba(0,0,0,0.3)"
+  });
+  const btn = document.createElement("button");
+  btn.textContent = "×";
+  Object.assign(btn.style, {
+    marginLeft: "1em",
+    background: "none",
+    border: "none",
+    color: "white",
+    fontSize: "20px",
+    cursor: "pointer"
+  });
+  btn.addEventListener("click", () => {
+    banner.remove();
+    document.body.style.marginTop = "";
+  });
+  banner.appendChild(btn);
+  document.body.prepend(banner);
+  document.body.style.marginTop = banner.offsetHeight + "px";
 }

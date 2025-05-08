@@ -13,6 +13,8 @@ h1 {
 
 .container {
     width: 300px;
+    margin-top: 20px;
+    position: relative; /* or absolute/fixed if you prefer */
 }
 
 .setting {
@@ -47,4 +49,8 @@ button {
 
 button:hover {
     background-color: #0a8ac2;
+}
+
+#adminPasswordContainer {
+  margin-top: 10px;
 }

@@ -1,7 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "Fake News Detection Helper",
-  "description": "Highlights problematic claims inside YouTube videos with a waveform",
+  "name": "FakeBusters Fake News Detection Helper",
+  "description": "Highlights problematic claims inside YouTube or TikTok videos in real time",
+    "icons": {
+    "16":  "icons/falseBusters_logo.png",
+    "48":  "icons/falseBusters_logo.png",
+    "128": "icons/falseBusters_logo.png"
+  },
   "version": "1.1",
   "permissions": [
     "storage",
@@ -12,14 +17,18 @@
     {
       "resources": ["sounds/ding.mp3"],
       "matches": ["<all_urls>"]
-    }
+    },
+    {
+    "resources": ["blocked_list/blocked.json"],
+     "matches": ["<all_urls>"]
+   }
   ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "icons/icon.png",
-      "48": "icons/icon.png",
-      "128": "icons/icon.png"
+      "16": "icons/falseBusters_logo.png",
+      "48": "icons/falseBusters_logo.png",
+      "128": "icons/falseBusters_logo.png"
     }
   },
   "content_scripts": [
