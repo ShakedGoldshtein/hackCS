@@ -36,11 +36,34 @@ async function sendToBackend(videoUrl) {
           time : p.start,
           score: p.score ?? 0.5,       // default if you don’t return a score
           text : p.claim_text,
-          explanation : p.debunking_information
+          explanation : p.debunking_information,
+          severity : p.severity
         }));
+        const cred_score = calculateCredibilityScore(result, 1.2);
+        fakeClaims.push({
+          type: "credibility_score",
+          score: cred_score
+        });
+
     } catch (error) {
         console.error("Error fetching information from backend:", error);
     }
+}
+
+//helper function to calculate cred score of a video
+function calculateCredibilityScore(data, alpha = 1.0) {
+    const pins = data.Pins || [];
+    const totalDurationMinutes = (data.total_duration || 0) / 60;
+
+    if (totalDurationMinutes === 0) {
+        return 0.0; // Avoid division by zero
+    }
+
+    const totalSeverity = pins.reduce((sum, pin) => sum + (pin.severity || 0), 0);
+    const penalty = alpha * (totalSeverity / totalDurationMinutes) * 100;
+    const credibility = Math.max(0, 100 - penalty);
+
+    return Math.round(credibility * 100) / 100; // Round to 2 decimal places
 }
 
 function detectVideoPlatformAndId() {
@@ -78,26 +101,24 @@ const BLOCK_LIST = [
     "XUtCxiM_Veo"// TikTok video IDs
 ];
 
-// on every page load, check for video link, and allow link only if page is not blocked
-window.addEventListener("load", () => {
+// block video helper functino for parent mode
+function blockCurrentVideo() {
   const url = window.location.href;
 
-  // YouTube
-  let ytMatch = url.match(/[?&]v=([^&]+)/);
-  if (ytMatch && BLOCK_LIST.includes(ytMatch[1])) {
+  // Try to block YouTube
+  if (url.includes("youtube.com/watch")) {
     document.querySelector("ytd-watch-flexy")?.remove();
-    showBlockedBanner("This video has been blocked by your extension.")
-    console.log("This video has been blocked by your extension.");
+    showBlockedBanner("This video has been blocked by your extension.");
+    console.log("YouTube video blocked.");
   }
 
-  // TikTok
-  let ttMatch = url.match(/tiktok\.com\/video\/(\d+)/);
-  if (ttMatch && BLOCK_LIST.includes(ttMatch[1])) {
+  // Try to block TikTok
+  if (url.includes("tiktok.com/video")) {
     document.querySelector("video")?.remove();
-    showBlockedBanner("This video has been blocked by your extension.")
-    console.log("This video has been blocked by your extension.");
+    showBlockedBanner("This video has been blocked by your extension.");
+    console.log("TikTok video blocked.");
   }
-});
+}
 
 function observeTikTokVideoChanges() {
   const observer = new MutationObserver(() => {
@@ -158,8 +179,14 @@ if (window.location.hostname.includes("tiktok.com")) {
             console.log("🔄 Redrawing waveform for new TikTok video");
             // 🔁 First send to Whisper for analysis
             sendToBackend(window.location.href).then(() => {
-              drawWaveform();
-              startMarkerUpdate();
+              const credibilityScore = fakeClaims[fakeClaims.length - 1].score;
+              const parentMode = localStorage.getItem("parentMode") === "true";
+              if (credibilityScore < 60 && parentMode) {
+                blockCurrentVideo();  // 🔒 Your routine to block playback
+              } else {
+                drawWaveform();
+                startMarkerUpdate();
+              }
             });
           }
         }, 1000);
@@ -531,8 +558,14 @@ if (window.location.hostname.includes("youtube.com")) {
         if (video) {
           console.log("🔄 Redrawing waveform for new YouTube video");
           sendToBackend(window.location.href).then(() => {
-            drawWaveform();
-            startMarkerUpdate();
+            const credibilityScore = fakeClaims[fakeClaims.length - 1].score;
+            const parentMode = localStorage.getItem("parentMode") === "true";
+              if (credibilityScore < 60 && parentMode) {
+                blockCurrentVideo();  // 🔒 Your routine to block playback
+              } else {
+                drawWaveform();
+                startMarkerUpdate();
+              }
           });
         }
       }, 1000);
