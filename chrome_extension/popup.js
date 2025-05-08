@@ -8,8 +8,40 @@ const defaultSettings = {
     soundEnabled: true
 };
 
-document.addEventListener('DOMContentLoaded', loadSettings);
+const PARENT_PASSWORD = 'admin123';  // ← your chosen secret
 
+document.addEventListener('DOMContentLoaded', () => {
+  const passInput = document.getElementById('parentPassword');
+  const btn       = document.getElementById('parentModeBtn');
+
+  // Initialize button text based on saved state
+  chrome.storage.sync.get('parentMode', ({ parentMode }) => {
+    btn.textContent = parentMode
+      ? 'Deactivate Parent Mode'
+      : 'Activate Parent Mode';
+  });
+
+  btn.addEventListener('click', () => {
+    const entered = passInput.value;
+    if (entered !== PARENT_PASSWORD) {
+      alert('Incorrect password.');
+      return;
+    }
+
+    // Toggle the stored value
+    chrome.storage.sync.get('parentMode', ({ parentMode }) => {
+      const newVal = !parentMode;
+      chrome.storage.sync.set({ parentMode: newVal }, () => {
+        btn.textContent = newVal
+          ? 'Deactivate Parent Mode'
+          : 'Activate Parent Mode';
+        passInput.value = '';  // clear after use
+      });
+    });
+  });
+});
+
+document.addEventListener('DOMContentLoaded', loadSettings);
 document.getElementById('saveSettings').addEventListener('click', () => {
     const bgColorHex = document.getElementById('bgColor').value;
     const bgAlpha = parseFloat(document.getElementById('bgAlpha').value);
