@@ -1,4 +1,4 @@
 server/secret.env
 server/demo.ipynb
 server/db.json
-server/utils/__pycache__/*
+server/utils/__pycache__/

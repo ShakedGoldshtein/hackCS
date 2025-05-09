@@ -32,21 +32,23 @@ def check_files_exists(files):
             current_dir = Path.cwd()
             raise FileNotFoundError(f"File not found: {file}, current directory: {current_dir}")
 
-def generate_pings(transcript, model="gpt-4.1-nano"):
+def generate_pings(transcript, model="gpt-4.1-mini"):
+    print("Generating pings...")
     sysfs = [
         r'./prompts/clean_claims1.txt', 
         r'./prompts/create_debunks.txt']
     try:
         check_files_exists(sysfs)
-
-        res = transcript
+        res = str(transcript)
         out = []
         for sysf in sysfs:
-            # print(f"[DEBUG]: res type: {type(res)}")
-            res = pipe_unit(sysf, res, model=model)
+            print(f"[DEBUG]: pipe started for {sysf}")
+            res = str(pipe_unit(sysf, res, model=model))
+            # print(f"[DEBUG]: res_pipe: \n{res}")
             # res = assign_ids(out)
             out.append(res)
-        
+        print(f"[DEBUG]: pipe finished!")
+        # print(f"[DEBUG]: out[-1]: {out[-1]}")
         return json.loads(out[-1])
 
     except Exception as e:
