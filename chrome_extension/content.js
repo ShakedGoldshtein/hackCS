@@ -41,13 +41,13 @@ async function sendToBackend(videoUrl) {
           severity: p.misinformation_type  // this is the actual field for severity
         }));
 
-        console.log("[DEBUG]: fakeClaims:\n", fakeClaims);
+
         const cred_score = calculateCredibilityScore(result.entries.pings.entries, result.entries.total_duration, 1.2);
         fakeClaims.push({
           type: "credibility_score",
           score: cred_score
         });
-
+        console.log("[DEBUG]: fakeClaims:\n", fakeClaims);
     } catch (error) {
         console.error("Error fetching information from backend:", error);
     }
