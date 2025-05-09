@@ -15,6 +15,7 @@ let fakeClaims
 fakeClaims = [];
 
 async function sendToBackend(videoUrl) {
+  fakeClaims = []
   console.log("Sending request to backend");
   try {
     const BASE_API = "http://localhost:5100";
@@ -23,7 +24,7 @@ async function sendToBackend(videoUrl) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ url: videoUrl })
         });
-        fakeClaims = []
+
         const result = await response.json();
         console.log("Recieved information from backend (fact checking pipeline):", result);
 
@@ -38,7 +39,7 @@ async function sendToBackend(videoUrl) {
           time: p.start + 5,
           text: p.claim_text,
           explanation: p.debunking_information,
-          severity: p.misinformation_type  // this is the actual field for severity
+          severity: p.severity  // this is the actual field for severity
         }));
 
 
@@ -62,13 +63,14 @@ function calculateCredibilityScore(pings, totalDurationSeconds, alpha = 1.0) {
   }
 
   const severityMap = {
+    low: 0.2,
     unverified: 0.3,
     medium: 0.6,
     high: 0.9
   };
 
   const totalSeverity = pings.reduce((sum, pin) => {
-    const severity = pin.misinformation_type?.toLowerCase() || "unverified";
+    const severity = pin.severity?.toLowerCase() || "unverified";
     return sum + (severityMap[severity] ?? 0);
   }, 0);
 
@@ -80,7 +82,7 @@ function calculateCredibilityScore(pings, totalDurationSeconds, alpha = 1.0) {
 
 function detectVideoPlatformAndId() {
   const url = new URL(window.location.href);
-
+  fakeClaims = []
   if (url.hostname.includes("youtube.com")) {
     const id = new URLSearchParams(url.search).get("v");
     return { platform: "youtube", videoId: id };
@@ -104,14 +106,6 @@ function detectVideoPlatformAndId() {
 
   return { platform: null, videoId: null };
 }
-
-//placeholder block_list of blocked websites
-
-const BLOCK_LIST = [
-    "abc123",           // YouTube video IDs
-    "7498347420737162513",
-    "XUtCxiM_Veo"// TikTok video IDs
-];
 
 // block video helper functino for parent mode
 function blockCurrentVideo() {
@@ -176,12 +170,14 @@ if (window.location.hostname.includes("tiktok.com")) {
 
       if (!currentPath.includes("/video/") && document.getElementById("waveformContainer")) {
         console.log("🧹 Navigated away from video, removing waveform.");
+        fakeClaims = []
         document.getElementById("waveformContainer").remove();
       }
 
       const match = currentPath.match(/\/video\/(\d+)/);
       if (match) {
         console.log("👀 TikTok path changed to new video:", match[1]);
+        fakeClaims = []
         currentVideoId = match[1];
         waitForVideo();
 
@@ -326,7 +322,7 @@ function applySettings() {
  */
 
 function drawWaveform() {
-
+  fakeClaims = []
   const container = document.getElementById('waveformContainer');
   if (!container) return;
 
@@ -361,7 +357,7 @@ function drawWaveform() {
     dot.style.position = 'absolute';
     dot.style.width = '8px';
     dot.style.height = '8px';
-    dot.style.backgroundColor = getDotColor(claim.score);
+    dot.style.backgroundColor = getDotColor(claim.severity);
     dot.style.borderRadius = '50%';
     dot.style.left = `${x - 4}px`;
     dot.style.top = `${(canvas.height / 2) - 4}px`;
@@ -388,6 +384,7 @@ function drawWaveform() {
 }
 //defined colors for dots per severity of claim
 function getDotColor(score) {
+  if (score == "low") return "blue";
   if (score === "unknown") return "gray";
   if (score === "medium") return "yellow";
   if (score === "high") return "red";
