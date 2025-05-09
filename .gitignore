@@ -1,2 +1,3 @@
 server/secret.env
 server/demo.ipynb
+server/db.json
