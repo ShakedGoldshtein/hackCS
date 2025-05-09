@@ -107,19 +107,26 @@ def pipe_unit(system_prompt_file: str, user_prompt: str, model="gpt-4.1-nano") -
 
 
 ## TTS
-def generate_audio_response(prompt):
-
+def generate_audio_response(prompt, output_path="output.wav"):
     system_prompt_file = r"./prompts/tts_reactor.txt"
+    
     with open(system_prompt_file, "r", encoding="utf-8") as f:
         system_prompt = f.read()
+
     response = client.audio.speech.create(
-    model="gpt-4o-mini-tts",
-    voice="shimmer",
-    instructions=system_prompt,
-    input=prompt,
-    response_format="wav"
+        model="gpt-4o-mini-tts",
+        voice="shimmer",
+        instructions=system_prompt,
+        input=prompt,
+        response_format="mp3"
     )
-    return response
+
+    # Save the audio to a file
+    with open(output_path, "wb") as f:
+        f.write(response.content)  # `response.content` contains the raw audio bytes
+
+    return output_path, response
+
 
     # audio_bytes = audio_response.content
     # Audio(data=audio_bytes)
