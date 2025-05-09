@@ -32,7 +32,7 @@ def check_files_exists(files):
             current_dir = Path.cwd()
             raise FileNotFoundError(f"File not found: {file}, current directory: {current_dir}")
 
-def generate_pings(transcript, model="gpt-4.1-nano"):
+def generate_pings(transcript, model="gpt-4.1-mini"):
     sysfs = [
         r'./prompts/clean_claims1.txt', 
         r'./prompts/create_debunks.txt']
