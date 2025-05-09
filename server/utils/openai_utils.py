@@ -101,7 +101,8 @@ def pipe_unit(system_prompt_file: str, user_prompt: str, model="gpt-4.1-nano") -
         store=False
     )
     text = response.output[0].content[0].text
-    return text.strip()
+    text = text.strip()
+    return text
 
 
 
