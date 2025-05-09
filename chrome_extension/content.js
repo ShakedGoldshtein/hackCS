@@ -370,7 +370,7 @@ function drawWaveform() {
     dot.style.cursor = 'pointer';
 
     dot.addEventListener('mouseenter', (e) => {
-      showTooltip(`Claim:  ${claim.text}\nFalseBusters Explanation:  ${claim.explanation}`, e.pageX, e.pageY - 30);
+      showTooltip(`Claim: ${claim.text}<br><br>FalseBusters Explanation: ${claim.explanation}`, e.pageX, e.pageY - 30);
     });
 
     dot.addEventListener('mouseleave', () => {
@@ -456,7 +456,8 @@ function showTooltip(text, x, y) {
     tooltip.style.pointerEvents = 'none';
     document.body.appendChild(tooltip);
   }
-  tooltip.textContent = text;
+  //tooltip.textContent = text;
+  tooltip.innerHTML = text;
   tooltip.style.left = `${x}px`;
   tooltip.style.top = `${y}px`;
   tooltip.style.display = 'block';
@@ -476,7 +477,7 @@ function hideTooltip() {
 function checkForClaimNotification(currentTime) {
   fakeClaims.forEach(claim => {
     if (!notifiedClaims.has(claim.time) && currentTime >= claim.time && currentTime - claim.time < 5 && claim.severity != "unverified") {
-      showNotificationPopup(`Claim: ${claim.text}\nFalseBusters Explanation: ${claim.explanation}`);
+      showNotificationPopup(`Claim: ${claim.text}<br><br>FalseBusters Explanation: ${claim.explanation}`);
       notifiedClaims.add(claim.time);
     }
   });
@@ -502,7 +503,7 @@ function showNotificationPopup(text) {
   }
 
   // Main message
-  popup.textContent = "Fact checking claim: " + text;
+  popup.innerHTML  = text;
   popup.insertAdjacentHTML('beforeend', '<br><br>');
   // Build mailto link with dynamic subject
   const claim = text;
