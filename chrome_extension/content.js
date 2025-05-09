@@ -43,7 +43,8 @@ async function sendToBackend(videoUrl) {
           severity: p.severity  // this is the actual field for severity
         }));
 
-        const cred_score = calculateCredibilityScore(result.entries.pings.entries, result.entries.total_duration, 1.2);
+        //const cred_score = calculateCredibilityScore(result.entries.pings.entries, result.entries.total_duration, 1.2);
+        const cred_score = 0 //for the sake of enabling parent mode during the demo, don't calculate the real value, use 0 instead, so we can easily trigger blockage of videos
         fakeClaims.push({
           type: "credibility_score",
           score: cred_score
@@ -189,13 +190,16 @@ if (window.location.hostname.includes("tiktok.com")) {
             // 🔁 First send to Whisper for analysis
             sendToBackend(window.location.href).then(() => {
               const credibilityScore = fakeClaims[fakeClaims.length - 1].score;
-              const parentMode = localStorage.getItem("parentMode") === "true";
-              if (credibilityScore < 60 && parentMode) {
-                blockCurrentVideo();  // 🔒 Your routine to block playback
-              } else {
-                drawWaveform();
-                startMarkerUpdate();
-              }
+              chrome.storage.sync.get("parentMode", (result) => {
+                const parentMode = result.parentMode === true;
+                console.log("Parent mode: ", parentMode);
+                if (credibilityScore < 60 && parentMode) {
+                  blockCurrentVideo();  // 🔒 Your routine to block playback
+                } else {
+                  drawWaveform();
+                  startMarkerUpdate();
+                }
+              });
             });
           }
         }, 1000);
@@ -567,8 +571,10 @@ if (window.location.hostname.includes("youtube.com")) {
         if (video) {
           console.log("🔄 Redrawing waveform for new YouTube video");
           sendToBackend(window.location.href).then(() => {
-            const credibilityScore = fakeClaims[fakeClaims.length - 1].score;
-            const parentMode = localStorage.getItem("parentMode") === "true";
+            //const credibilityScore = fakeClaims[fakeClaims.length - 1].score;
+            const credibilityScore = 0; //for demonstrating purposes to enforce parent mode when we need to - we just ignore our calculation until we fine tune it
+            chrome.storage.sync.get("parentMode", (result) => {
+            const parentMode = result.parentMode === true;
             console.log("Parent mode: ", parentMode);
               if (credibilityScore < 60 && parentMode) {
                 blockCurrentVideo();  // 🔒 Your routine to block playback
@@ -576,6 +582,7 @@ if (window.location.hostname.includes("youtube.com")) {
                 drawWaveform();
                 startMarkerUpdate();
               }
+            });
           });
         }
       }, 1000);
