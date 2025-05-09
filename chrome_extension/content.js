@@ -16,6 +16,8 @@ fakeClaims = [];
 
 async function sendToBackend(videoUrl) {
   console.log("Sending request to backend");
+  fakeClaims = []
+  drawWaveform()
   try {
     const BASE_API = "http://localhost:5100";
         const response = await fetch(`${BASE_API}/analyze`, {
