@@ -364,7 +364,7 @@ function drawWaveform() {
     dot.style.cursor = 'pointer';
 
     dot.addEventListener('mouseenter', (e) => {
-      showTooltip(`Claim:${claim.text}\nFalseBusters Explanation: ${claim.explanation}`, e.pageX, e.pageY - 30);
+      showTooltip(`Claim:  ${claim.text}\nFalseBusters Explanation:  ${claim.explanation}`, e.pageX, e.pageY - 30);
     });
 
     dot.addEventListener('mouseleave', () => {
