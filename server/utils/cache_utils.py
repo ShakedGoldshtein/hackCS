@@ -37,6 +37,6 @@ def build_response(url):
     # response["url"] = url
     response["pings"] = {}
     response["pings"]["entries"] = data_entires
-    response["pings"]["max_end"] = max_end
+    response["pings"]["total_duration"] = max_end
     
     return response

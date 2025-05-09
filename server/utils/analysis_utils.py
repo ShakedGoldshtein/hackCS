@@ -45,7 +45,7 @@ def analyze_url(url):
             json.dumps(transcript, ensure_ascii=False, indent=2),
             encoding="utf-8"
         )
-        response_pings = generate_pings(transcript, model="gpt-4.1-nano")
+        response_pings = generate_pings(transcript, model="gpt-4.1-mini")
         return response_pings
 
     except Exception as e:

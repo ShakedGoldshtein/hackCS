@@ -86,7 +86,15 @@ def pipe_unit(system_prompt_file: str, user_prompt: str, model="gpt-4.1-nano") -
             }
         },
         reasoning={},
-        tools=[],
+        tools=[
+        {
+            "type": "web_search_preview",
+            "user_location": {
+                "type": "approximate"
+            },
+            "search_context_size": "medium"
+            }
+        ],
         temperature=0.2,
         # max_output_tokens=4096,
         top_p=1,
@@ -94,3 +102,22 @@ def pipe_unit(system_prompt_file: str, user_prompt: str, model="gpt-4.1-nano") -
     )
     text = response.output[0].content[0].text
     return text.strip()
+
+
+
+## TTS
+def generate_audio_response(prompt):
+
+    system_prompt_file = r"./prompts/tts_prompt.txt"
+    with open(system_prompt_file, "r", encoding="utf-8") as f:
+        system_prompt = f.read()
+    response = client.audio.speech.create(
+    model="gpt-4o-mini-tts",
+    voice="shimmer",
+    instructions=system_prompt,
+    input=prompt,
+    response_format="wav"
+    )
+
+    # audio_bytes = audio_response.content
+    # Audio(data=audio_bytes)
