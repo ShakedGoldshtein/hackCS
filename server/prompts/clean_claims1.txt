@@ -72,7 +72,13 @@ Return a JSON array ordered by `start` time, where each element is:
 ]
 ```
 
-If there weren't any claims, output an empty array: 
-[]
-
+If there weren't any claims, output a single element array: 
+[
+  {
+    "start": 0,
+    "end": <last end time>
+    "claim_text": "",
+    "type": "empty"
+  }
+]
 Remember to output strictly following this format without any additional text or explanation.
