@@ -118,10 +118,7 @@ def generate_audio_response(prompt):
     input=prompt,
     response_format="wav"
     )
-<<<<<<< HEAD
     return response
-=======
->>>>>>> 8028bbdf89bbb4c6a4f30b745219d67662c5f926
 
     # audio_bytes = audio_response.content
     # Audio(data=audio_bytes)
