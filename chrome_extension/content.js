@@ -55,7 +55,7 @@ async function sendToBackend(videoUrl) {
 
 //helper function to calculate cred score of a video
 function calculateCredibilityScore(pings, totalDurationSeconds, alpha = 1.0) {
-  const totalDurationMinutes = (totalDurationSeconds || 0) / 60;
+  const totalDurationMinutes = totalDurationSeconds / 60;
 
   if (!Array.isArray(pings) || totalDurationMinutes === 0) {
     return 0.0;
