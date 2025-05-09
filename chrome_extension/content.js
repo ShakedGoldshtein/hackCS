@@ -15,7 +15,6 @@ let fakeClaims
 fakeClaims = [];
 
 async function sendToBackend(videoUrl) {
-  fakeClaims = []
   console.log("Sending request to backend");
   try {
     const BASE_API = "http://localhost:5100";
@@ -42,13 +41,13 @@ async function sendToBackend(videoUrl) {
           severity: p.severity  // this is the actual field for severity
         }));
 
-
         const cred_score = calculateCredibilityScore(result.entries.pings.entries, result.entries.total_duration, 1.2);
         fakeClaims.push({
           type: "credibility_score",
           score: cred_score
         });
         console.log("[DEBUG]: fakeClaims:\n", fakeClaims);
+        console.log("[DEBUG]: video cred score:\n", cred_score);
     } catch (error) {
         console.error("Error fetching information from backend:", error);
     }
@@ -322,7 +321,6 @@ function applySettings() {
  */
 
 function drawWaveform() {
-  fakeClaims = []
   const container = document.getElementById('waveformContainer');
   if (!container) return;
 
@@ -569,6 +567,7 @@ if (window.location.hostname.includes("youtube.com")) {
           sendToBackend(window.location.href).then(() => {
             const credibilityScore = fakeClaims[fakeClaims.length - 1].score;
             const parentMode = localStorage.getItem("parentMode") === "true";
+            console.log("Parent mode: ", parentMode);
               if (credibilityScore < 60 && parentMode) {
                 blockCurrentVideo();  // 🔒 Your routine to block playback
               } else {
