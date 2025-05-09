@@ -23,7 +23,7 @@ async function sendToBackend(videoUrl) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ url: videoUrl })
         });
-
+        fakeClaims = []
         const result = await response.json();
         console.log("Recieved information from backend (fact checking pipeline):", result);
 
