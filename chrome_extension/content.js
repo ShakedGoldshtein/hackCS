@@ -12,11 +12,7 @@ let lastDetectedVideoId = null;
 let fakeClaims
 
 // fake claim array loaded with default values.
-fakeClaims = [
-  { time: 30, score: 0.2, text: "Minor error." },
-  { time: 90, score: 0.6, text: "Significant false claim." },
-  { time: 150, score: 0.9, text: "Major misinformation." }
-];
+fakeClaims = [];
 
 async function sendToBackend(videoUrl) {
   console.log("Sending request to backend");
@@ -31,14 +27,22 @@ async function sendToBackend(videoUrl) {
         const result = await response.json();
         console.log("Recieved information from backend (fact checking pipeline):", result);
 
-          // Assume your backend JSON is { Pings: [ {start,end,claim_text}, … ] }
-        fakeClaims = result.pings.map(p => ({
-          time : p.start,
-          text : p.claim_text,
-          explanation : p.debunking_information,
-          severity : p.severity
+        const pingEntries = result?.entries?.pings?.entries;
+
+        if (!Array.isArray(pingEntries)) {
+          console.error("[ERROR] pingEntries not found or not an array:", pingEntries);
+          return;
+        }
+
+        fakeClaims = pingEntries.map(p => ({
+          time: p.start + 5,
+          text: p.claim_text,
+          explanation: p.debunking_information,
+          severity: p.misinformation_type  // this is the actual field for severity
         }));
-        const cred_score = calculateCredibilityScore(result, 1.2);
+
+        console.log("[DEBUG]: fakeClaims:\n", fakeClaims);
+        const cred_score = calculateCredibilityScore(result.entries.pings.entries, result.entries.total_duration, 1.2);
         fakeClaims.push({
           type: "credibility_score",
           score: cred_score
@@ -50,11 +54,12 @@ async function sendToBackend(videoUrl) {
 }
 
 //helper function to calculate cred score of a video
-function calculateCredibilityScore(data, alpha = 1.0) {
-  const pins = data.Pins || [];
-  const totalDurationMinutes = (data.total_duration || 0) / 60;
+function calculateCredibilityScore(pings, totalDurationSeconds, alpha = 1.0) {
+  const totalDurationMinutes = (totalDurationSeconds || 0) / 60;
 
-  if (totalDurationMinutes === 0) return 0.0;
+  if (!Array.isArray(pings) || totalDurationMinutes === 0) {
+    return 0.0;
+  }
 
   const severityMap = {
     unverified: 0.3,
@@ -62,12 +67,9 @@ function calculateCredibilityScore(data, alpha = 1.0) {
     high: 0.9
   };
 
-  const totalSeverity = pins.reduce((sum, pin) => {
-    let severityValue = pin.severity;
-    if (typeof severityValue === "string") {
-      severityValue = severityMap[severityValue.toLowerCase()] || 0;
-    }
-    return sum + severityValue;
+  const totalSeverity = pings.reduce((sum, pin) => {
+    const severity = pin.misinformation_type?.toLowerCase() || "unverified";
+    return sum + (severityMap[severity] ?? 0);
   }, 0);
 
   const penalty = alpha * (totalSeverity / totalDurationMinutes) * 100;
@@ -473,7 +475,7 @@ function hideTooltip() {
 function checkForClaimNotification(currentTime) {
   fakeClaims.forEach(claim => {
     if (!notifiedClaims.has(claim.time) && currentTime >= claim.time && currentTime - claim.time < 5) {
-      showNotificationPopup(`${claim.text}<br>${claim.explanation}`);
+      showNotificationPopup(`${claim.text}\n${claim.explanation}`);
       notifiedClaims.add(claim.time);
     }
   });
