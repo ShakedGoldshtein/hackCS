@@ -125,3 +125,4 @@ function rgbaToAlpha(rgba) {
     if (!parts || parts.length < 4) return 0.3;
     return parseFloat(parts[3]);
 }
+

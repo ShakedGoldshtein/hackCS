@@ -16,6 +16,8 @@ fakeClaims = [];
 
 async function sendToBackend(videoUrl) {
   console.log("Sending request to backend");
+  fakeClaims = []
+  drawWaveform()
   try {
     const BASE_API = "http://localhost:5100";
         const response = await fetch(`${BASE_API}/analyze`, {
@@ -38,16 +40,17 @@ async function sendToBackend(videoUrl) {
           time: p.start + 5,
           text: p.claim_text,
           explanation: p.debunking_information,
-          severity: p.misinformation_type  // this is the actual field for severity
+          severity: p.severity  // this is the actual field for severity
         }));
 
-        console.log("[DEBUG]: fakeClaims:\n", fakeClaims);
-        const cred_score = calculateCredibilityScore(result.entries.pings.entries, result.entries.total_duration, 1.2);
+        //const cred_score = calculateCredibilityScore(result.entries.pings.entries, result.entries.total_duration, 1.2);
+        const cred_score = 0 //for the sake of enabling parent mode during the demo, don't calculate the real value, use 0 instead, so we can easily trigger blockage of videos
         fakeClaims.push({
           type: "credibility_score",
           score: cred_score
         });
-
+        console.log("[DEBUG]: fakeClaims:\n", fakeClaims);
+        console.log("[DEBUG]: video cred score:\n", cred_score);
     } catch (error) {
         console.error("Error fetching information from backend:", error);
     }
@@ -55,20 +58,21 @@ async function sendToBackend(videoUrl) {
 
 //helper function to calculate cred score of a video
 function calculateCredibilityScore(pings, totalDurationSeconds, alpha = 1.0) {
-  const totalDurationMinutes = (totalDurationSeconds || 0) / 60;
+  const totalDurationMinutes = totalDurationSeconds / 60;
 
   if (!Array.isArray(pings) || totalDurationMinutes === 0) {
     return 0.0;
   }
 
   const severityMap = {
+    low: 0.2,
     unverified: 0.3,
     medium: 0.6,
     high: 0.9
   };
 
   const totalSeverity = pings.reduce((sum, pin) => {
-    const severity = pin.misinformation_type?.toLowerCase() || "unverified";
+    const severity = pin.severity?.toLowerCase() || "unverified";
     return sum + (severityMap[severity] ?? 0);
   }, 0);
 
@@ -80,7 +84,7 @@ function calculateCredibilityScore(pings, totalDurationSeconds, alpha = 1.0) {
 
 function detectVideoPlatformAndId() {
   const url = new URL(window.location.href);
-
+  fakeClaims = []
   if (url.hostname.includes("youtube.com")) {
     const id = new URLSearchParams(url.search).get("v");
     return { platform: "youtube", videoId: id };
@@ -104,14 +108,6 @@ function detectVideoPlatformAndId() {
 
   return { platform: null, videoId: null };
 }
-
-//placeholder block_list of blocked websites
-
-const BLOCK_LIST = [
-    "abc123",           // YouTube video IDs
-    "7498347420737162513",
-    "XUtCxiM_Veo"// TikTok video IDs
-];
 
 // block video helper functino for parent mode
 function blockCurrentVideo() {
@@ -176,12 +172,14 @@ if (window.location.hostname.includes("tiktok.com")) {
 
       if (!currentPath.includes("/video/") && document.getElementById("waveformContainer")) {
         console.log("🧹 Navigated away from video, removing waveform.");
+        fakeClaims = []
         document.getElementById("waveformContainer").remove();
       }
 
       const match = currentPath.match(/\/video\/(\d+)/);
       if (match) {
         console.log("👀 TikTok path changed to new video:", match[1]);
+        fakeClaims = []
         currentVideoId = match[1];
         waitForVideo();
 
@@ -192,13 +190,16 @@ if (window.location.hostname.includes("tiktok.com")) {
             // 🔁 First send to Whisper for analysis
             sendToBackend(window.location.href).then(() => {
               const credibilityScore = fakeClaims[fakeClaims.length - 1].score;
-              const parentMode = localStorage.getItem("parentMode") === "true";
-              if (credibilityScore < 60 && parentMode) {
-                blockCurrentVideo();  // 🔒 Your routine to block playback
-              } else {
-                drawWaveform();
-                startMarkerUpdate();
-              }
+              chrome.storage.sync.get("parentMode", (result) => {
+                const parentMode = result.parentMode === true;
+                console.log("Parent mode: ", parentMode);
+                if (credibilityScore < 60 && parentMode) {
+                  blockCurrentVideo();  // 🔒 Your routine to block playback
+                } else {
+                  drawWaveform();
+                  startMarkerUpdate();
+                }
+              });
             });
           }
         }, 1000);
@@ -326,7 +327,6 @@ function applySettings() {
  */
 
 function drawWaveform() {
-
   const container = document.getElementById('waveformContainer');
   if (!container) return;
 
@@ -361,7 +361,7 @@ function drawWaveform() {
     dot.style.position = 'absolute';
     dot.style.width = '8px';
     dot.style.height = '8px';
-    dot.style.backgroundColor = getDotColor(claim.score);
+    dot.style.backgroundColor = getDotColor(claim.severity);
     dot.style.borderRadius = '50%';
     dot.style.left = `${x - 4}px`;
     dot.style.top = `${(canvas.height / 2) - 4}px`;
@@ -370,7 +370,7 @@ function drawWaveform() {
     dot.style.cursor = 'pointer';
 
     dot.addEventListener('mouseenter', (e) => {
-      showTooltip(claim.text, e.pageX, e.pageY - 30);
+      showTooltip(`Claim: ${claim.text}<br><br>FalseBusters Explanation: ${claim.explanation}`, e.pageX, e.pageY - 30);
     });
 
     dot.addEventListener('mouseleave', () => {
@@ -388,6 +388,7 @@ function drawWaveform() {
 }
 //defined colors for dots per severity of claim
 function getDotColor(score) {
+  if (score == "low") return "blue";
   if (score === "unknown") return "gray";
   if (score === "medium") return "yellow";
   if (score === "high") return "red";
@@ -455,7 +456,8 @@ function showTooltip(text, x, y) {
     tooltip.style.pointerEvents = 'none';
     document.body.appendChild(tooltip);
   }
-  tooltip.textContent = text;
+  //tooltip.textContent = text;
+  tooltip.innerHTML = text;
   tooltip.style.left = `${x}px`;
   tooltip.style.top = `${y}px`;
   tooltip.style.display = 'block';
@@ -474,8 +476,8 @@ function hideTooltip() {
 
 function checkForClaimNotification(currentTime) {
   fakeClaims.forEach(claim => {
-    if (!notifiedClaims.has(claim.time) && currentTime >= claim.time && currentTime - claim.time < 5) {
-      showNotificationPopup(`${claim.text}\n${claim.explanation}`);
+    if (!notifiedClaims.has(claim.time) && currentTime >= claim.time && currentTime - claim.time < 5 && claim.severity != "unverified") {
+      showNotificationPopup(`Claim: ${claim.text}<br><br>FalseBusters Explanation: ${claim.explanation}`);
       notifiedClaims.add(claim.time);
     }
   });
@@ -501,7 +503,7 @@ function showNotificationPopup(text) {
   }
 
   // Main message
-  popup.textContent = "Problematic Claim Detected: " + text;
+  popup.innerHTML  = text;
   popup.insertAdjacentHTML('beforeend', '<br><br>');
   // Build mailto link with dynamic subject
   const claim = text;
@@ -570,14 +572,18 @@ if (window.location.hostname.includes("youtube.com")) {
         if (video) {
           console.log("🔄 Redrawing waveform for new YouTube video");
           sendToBackend(window.location.href).then(() => {
-            const credibilityScore = fakeClaims[fakeClaims.length - 1].score;
-            const parentMode = localStorage.getItem("parentMode") === "true";
+            //const credibilityScore = fakeClaims[fakeClaims.length - 1].score;
+            const credibilityScore = 0; //for demonstrating purposes to enforce parent mode when we need to - we just ignore our calculation until we fine tune it
+            chrome.storage.sync.get("parentMode", (result) => {
+            const parentMode = result.parentMode === true;
+            console.log("Parent mode: ", parentMode);
               if (credibilityScore < 60 && parentMode) {
                 blockCurrentVideo();  // 🔒 Your routine to block playback
               } else {
                 drawWaveform();
                 startMarkerUpdate();
               }
+            });
           });
         }
       }, 1000);
